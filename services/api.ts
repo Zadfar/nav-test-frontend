@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Customer, PaymentResponse } from '../types';
 
 // REPLACE with your local IP
-const API_URL = 'http://192.168.1.15:3000'; 
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 export const getCustomers = async (): Promise<Customer[]> => {
   try {
