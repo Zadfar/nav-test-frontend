@@ -22,7 +22,8 @@ jobs:
         run: |
           npm install
           npx expo export --platform web
-          # This generates the 'dist' folder
+        env:
+          EXPO_PUBLIC_API_URL: ${{ secrets.API_URL }}
 
       # Upload ONLY the 'dist' folder to EC2
       - name: Upload to Server
