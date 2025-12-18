@@ -1,0 +1,59 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # Build the Static Website
+      - name: Build Web App
+        run: |
+          npm install
+          npx expo export --platform web
+          # This generates the 'dist' folder
+
+      # Upload ONLY the 'dist' folder to EC2
+      - name: Upload to Server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "dist/*"
+          target: "/home/ubuntu/frontend-temp"
+
+      # Move files to Nginx folder
+      - name: Swap Files on Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Deploying Frontend..."
+            
+            # 1. Clear old Nginx files
+            sudo rm -rf /var/www/html/*
+            
+            # 2. Move new build files
+            # Note: appleboy/scp copies the folder structure, so we adjust path
+            sudo cp -r /home/ubuntu/frontend-temp/dist/* /var/www/html/
+            
+            # 3. Restart Nginx
+            sudo systemctl restart nginx
+            
+            # 4. Cleanup
+            rm -rf /home/ubuntu/frontend-temp
+            echo "Frontend Deployed Successfully!"
